@@ -34,6 +34,8 @@ ggplot(data.frame(expr = expr_vec), aes(x = expr)) +
         x = "Expression value",
         y = "Count")
 
+set.seed(128)
+
 # Filter out lowly expressed genes
 vars <- apply(expr_mat, 1, var)
 topN <- 3000
@@ -71,7 +73,6 @@ fviz_pca_ind(pca, habillage = meta_l1$group,
     addEllipses = TRUE, repel = TRUE, label = "none")
 
 # UMAP analysis
-set.seed(128)
 umap_res <- umap(t(expr_l1))
 
 umap_df <- data.frame(
@@ -87,7 +88,6 @@ legend("bottomleft", legend = levels(as.factor(meta_l1$group)),
     col = 1:length(levels(as.factor(meta_l1$group))), pch = 19)
 
 # Clustering analysis
-set.seed(128)
 k <- length(unique(meta_l1$group))
 km <- kmeans(pc_scores, centers = k)
 
@@ -118,12 +118,14 @@ dim(expr_l1_clean)
 dim(meta_l1_clean)
 
 # Save the processed expression matrix for JGL and MIIC
+expr_l1_clean <- t(expr_l1_clean)
+
 expr_save <- data.frame(
     gene = rownames(expr_l1_clean),
     expr_l1_clean
     )
 
-write_tsv(expr_save, "Data/expr_l1_clean.tsv")
+write_tsv(as.data.frame(expr_l1_clean), "Data/expr_l1_clean.tsv")
 
 write_tsv(meta_l1_clean,
             "Data/meta_l1_clean.tsv")
