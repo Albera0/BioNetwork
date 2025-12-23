@@ -56,15 +56,24 @@ expr_l1 <- expr_filt[selected_genes, ]
 
 dim(expr_l1)
 
+# Calculate variance for each gene
+vars_l1 <- apply(expr_l1, 1, var)
+
+# Select top 50 most variable genes
+top50_var <- names(sort(vars_l1, decreasing = TRUE))[1:50]
+
+expr_l1_50 <- expr_l1[top50_var, ]
+
+dim(expr_l1_50)
+
 # PCA analysis
-meta_l1 <- meta[match(colnames(expr_l1), meta$sample), ]
+meta_l1 <- meta[match(colnames(expr_l1_50), meta$sample), ]
 
 length(meta_l1$group)
-ncol(expr_l1)
-all(colnames(expr_l1) == meta_l1$sample)
-
+ncol(expr_l1_50)
+all(colnames(expr_l1_50) == meta_l1$sample)
 meta_l1$group <- factor(meta_l1$group)
-pca <- PCA(t(expr_l1), graph = FALSE)
+pca <- PCA(t(expr_l1_50), graph = FALSE)
 
 dim(pca$ind$coord)
 pc_scores <- pca$ind$coord[, 1:5]
@@ -73,7 +82,7 @@ fviz_pca_ind(pca, habillage = meta_l1$group,
     addEllipses = TRUE, repel = TRUE, label = "none")
 
 # UMAP analysis
-umap_res <- umap(t(expr_l1))
+umap_res <- umap(t(expr_l1_50))
 
 umap_df <- data.frame(
     UMAP1 = umap_res$layout[,1],
@@ -100,7 +109,7 @@ umap_df <- umap_df %>%
     mutate(
     z1 = scale(UMAP1),
     z2 = scale(UMAP2),
-    is_outlier = (abs(z1) > 3) | (abs(z2) > 3)  # 超过3个标准差的点
+    is_outlier = (abs(z1) > 3) | (abs(z2) > 3)
     )
 
 ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = is_outlier)) +
@@ -111,21 +120,34 @@ ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = is_outlier)) +
         color = "Outlier")
 
 # Remove outliers from expression matrix and metadata
-expr_l1_clean <- expr_l1[, !umap_df$is_outlier]
+expr_l1_clean <- expr_l1_50[, !umap_df$is_outlier]
 meta_l1_clean <- meta_l1[!umap_df$is_outlier, ]
 
 dim(expr_l1_clean)
 dim(meta_l1_clean)
 
+# Prepare metadata for MIIC and only keep subgroup information
+meta_miic <- meta_l1_clean %>%
+    select(sample, subgroup)
+
+meta_miic$subgroup <- as.factor(meta_miic$subgroup)
+
+# MIIC Web input file
+miic_input <- t(expr_l1_clean) %>%
+    as.data.frame()
+
+head(miic_input)
+
+write_tsv(miic_input, "Data/miic_input_web.tsv")
+
 # Save the processed expression matrix for JGL and MIIC
 expr_l1_clean <- t(expr_l1_clean)
 
-expr_save <- data.frame(
-    gene = rownames(expr_l1_clean),
-    expr_l1_clean
-    )
-
 write_tsv(as.data.frame(expr_l1_clean), "Data/expr_l1_clean.tsv")
+write_tsv(meta_miic, "Data/meta_l1_clean.tsv")
 
-write_tsv(meta_l1_clean,
-            "Data/meta_l1_clean.tsv")
+# Quick check of the saved metadata
+meta_test <- read_tsv("Data/meta_l1_clean.tsv")
+
+table(meta_test$subgroup)
+sum(is.na(meta_test$subgroup))
