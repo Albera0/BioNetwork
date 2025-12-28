@@ -128,13 +128,15 @@ dim(meta_l1_clean)
 
 # Prepare metadata for MIIC and only keep subgroup information
 meta_miic <- meta_l1_clean %>%
-    select(sample, subgroup)
+    select(subgroup)
 
 meta_miic$subgroup <- as.factor(meta_miic$subgroup)
 
 # MIIC Web input file
 miic_input <- t(expr_l1_clean) %>%
     as.data.frame()
+
+miic_input$subgroup <- meta_miic$subgroup
 
 head(miic_input)
 
