@@ -144,6 +144,14 @@ ggsave(
     device = cairo_pdf
 )
 
+ggsave(
+    filename = "Results/JGL_Normal_Tumor_overlay_network_flat.png",
+    plot = p,
+    width = 9,
+    height = 9,
+    dpi = 300
+)
+
 # Save edge list
 edge_df <- as_data_frame(g, what = "edges")
 write_tsv(edge_df, "Results/jgl_edges_all_samples.tsv")
